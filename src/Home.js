@@ -2,16 +2,21 @@ import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { Box, Button, Container, Typography, Stack, Alert, Snackbar, CircularProgress } from '@mui/material';
 import MuiAlert from '@mui/material/Alert';
+import { API_BASE_URL } from './Common';
 
 // Custom Alert component for use inside Snackbar
 const AlertBar = React.forwardRef(function Alert(props, ref) {
     return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
 });
 
-// Define your API base URL (adjust if your Java app runs on a different port/path)
-const API_BASE_URL = 'http://localhost:8080';
+const professor = 'professor';
+const student = 'student';
 
-export default function StudyRoomHomePage() {
+// Define your API base URL (adjust if your Java app runs on a different port/path)
+// const API_BASE_URL = 'http://localhost:8080';
+
+export default function Home({ user }) {
+    console.log(user)
     const [rooms, setRooms] = useState([]); // Real room data
     const [isLoading, setIsLoading] = useState(false);
     // State to track the currently selected room ID
@@ -22,7 +27,26 @@ export default function StudyRoomHomePage() {
 
     const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
-    const selectedRoom = rooms.find(room => room.id === selectedRoomId);
+    // Determine user's role (default to 'student' if not provided).
+    const userRole = user?.role || 'student';
+
+    // New DB column `role` on rooms: 'student' or 'professor'.
+    // - student rooms: visible to students
+    // - professor rooms: visible to professors (and professors may also see student rooms)
+    // If a room has no `role` value, show it to everyone by default.
+    const filteredRooms = rooms.filter((room) => {
+        if (!room.role) return false;
+        if (userRole.toLowerCase() === professor.toLowerCase()) {
+            // Professors see both professor and student rooms
+            return room.role.toLowerCase() === professor.toLowerCase() || room.role.toLowerCase() === student.toLowerCase();
+        }
+        // Students only see student rooms
+        return room.role.toLowerCase() === student.toLowerCase();
+    });
+
+    // Only consider selected room from the filtered list so users can't interact with
+    // rooms they don't have access to.
+    const selectedRoom = filteredRooms.find(room => room.id === selectedRoomId);
     const fetchRooms = async () => {
         setIsLoading(true);
         try {
@@ -30,6 +54,10 @@ export default function StudyRoomHomePage() {
             const response = await fetch(`${API_BASE_URL}/roomList`);
             if (!response.ok) throw new Error('Failed to fetch rooms');
             const data = await response.json();
+            // data = data.map(x => {
+            //     x.role = professor;
+            //     return x;
+            // });
             setRooms(data);
         } catch (error) {
             console.error("Error fetching rooms:", error);
@@ -145,13 +173,21 @@ export default function StudyRoomHomePage() {
                 </Alert>
 
                 {/* --- 1. Room Buttons --- */}
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+                    Showing rooms for role: <strong>{userRole}</strong>
+                </Typography>
+                {filteredRooms.length === 0 && (
+                    <Alert severity="warning" sx={{ my: 2, width: '100%' }}>
+                        No rooms available for your role.
+                    </Alert>
+                )}
                 <Stack
                     direction={{ xs: 'column', sm: 'row' }}
                     spacing={2}
                     mt={4}
                     sx={{ justifyContent: 'center', flexWrap: 'wrap' }}
                 >
-                    {rooms.map((room) => (
+                    {filteredRooms.map((room) => (
                         <Button
                             key={room.id}
                             variant={selectedRoomId === room.id ? 'contained' : 'outlined'}
