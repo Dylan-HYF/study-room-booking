@@ -54,6 +54,8 @@ const LoginPage = () => {
             },
             // Send the JSON payload
             body: JSON.stringify(payload),
+            // ADDED TO ENABLE COOKIES FOR DIFFERENCE IN PORTS 8080 3000
+            credentials: 'include',
         });
 
         // Check if the response status is 200-299 (success)

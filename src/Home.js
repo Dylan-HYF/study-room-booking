@@ -29,15 +29,19 @@ export default function Home({ user }) {
 
     // Determine user's role (default to 'student' if not provided).
     const userRole = user?.role || 'student';
-
+    console.log(userRole);
     // New DB column `role` on rooms: 'student' or 'professor'.
     // - student rooms: visible to students
     // - professor rooms: visible to professors (and professors may also see student rooms)
     // If a room has no `role` value, show it to everyone by default.
     const filteredRooms = rooms.filter((room) => {
         if (!room.role) return false;
+        console.log(room);
         if (userRole.toLowerCase() === professor.toLowerCase()) {
+
             // Professors see both professor and student rooms
+
+
             return room.role.toLowerCase() === professor.toLowerCase() || room.role.toLowerCase() === student.toLowerCase();
         }
         // Students only see student rooms
@@ -51,7 +55,10 @@ export default function Home({ user }) {
         setIsLoading(true);
         try {
             // Calls your RoomListServlet
-            const response = await fetch(`${API_BASE_URL}/roomList`);
+            // LINE ADDED DB-FE -- JUST TESTING
+            const response = await fetch(`${API_BASE_URL}/roomList`, {
+                credentials: 'include',
+            });
             if (!response.ok) throw new Error('Failed to fetch rooms');
             const data = await response.json();
             // data = data.map(x => {
@@ -109,6 +116,8 @@ export default function Home({ user }) {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(bookingData),
+                credentials: 'include',
+
             });
 
             if (response.ok) {
